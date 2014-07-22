@@ -1,0 +1,6 @@
+name: google
+version: 1.0.0
+description: Google Plugin for YamBot
+dependencies:
+  plugins: any
+  http: '>=0.11.1+1 <0.12.0'
