@@ -14,9 +14,9 @@ void main(List<String> args, SendPort port) {
 
   recv.listen((data) {
     if (data["event"] == "command") {
-      handle_command(data);
+      handleCommand(data);
     } else if (data['event'] == "message") {
-      handle_youtube(data);
+      handleYouTube(data);
     }
   });
   
@@ -30,38 +30,38 @@ void main(List<String> args, SendPort port) {
 }
 
 var link_regex = new RegExp(r'\(?\b((http|https)://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]');
-var _yt_info_url = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&key=${googleAPIKey}&id=';
+var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&key=${googleAPIKey}&id=';
 var _yt_link_id = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
 
-void handle_youtube(event) {
+void handleYouTube(event) {
   if (link_regex.hasMatch(event["message"])) {
     link_regex.allMatches(event['message']).forEach((match) {
       var url = match.group(0);
       if (url.contains("youtube") || url.contains("youtu.be")) {
-        output_youtube_info(event, url);
+        outputYouTubeInfo(event, url);
       }
     });
   }
 }
 
-void output_youtube_info(event, String url) {
+void outputYouTubeInfo(event, String url) {
   var id = extract_yt_id(url);
   
   if (id == null) {
     return;
   }
   
-  var request_url = "${_yt_info_url}${id}";
+  var request_url = "${YT_INFO_LINK}${id}";
   
   http.get(request_url).then((http.Response response) {
     var data = JSON.decode(response.body);
     var items = data['items'];
     var video = items[0];
-    print_yt_info(event, video);
+    printYouTubeInfo(event, video);
   });
 }
 
-void print_yt_info(data, info) {
+void printYouTubeInfo(data, info) {
   void reply(String message) {
     recv.send({
       "network": data["network"],
@@ -73,10 +73,10 @@ void print_yt_info(data, info) {
   
   var snippet = info["snippet"];
   
-  reply("${part_prefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET})");
+  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET})");
 }
 
-String part_prefix(String name) {
+String fancyPrefix(String name) {
   return "[${Color.BLUE}${name}${Color.RESET}]";
 }
 
@@ -89,7 +89,7 @@ String extract_yt_id(url) {
   return first.group(3);
 }
 
-void handle_command(data) {
+void handleCommand(data) {
   void reply(String message) {
     recv.send({
       "network": data["network"],
