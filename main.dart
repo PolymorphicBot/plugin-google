@@ -20,7 +20,7 @@ void main(List<String> args, SendPort port) {
     } else if (data['event'] == "message") {
       handleYouTube(data);
     } else if (data['event'] == "shutdown") {
-      sub.cancel();  
+      sub.cancel();
     }
   });
   
