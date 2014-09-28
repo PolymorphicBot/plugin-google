@@ -12,11 +12,15 @@ void main(List<String> args, SendPort port) {
   print("[Google] Loading");
   recv = new Receiver(port);
 
-  recv.listen((data) {
+  var sub;
+  
+  sub = recv.listen((data) {
     if (data["event"] == "command") {
       handleCommand(data);
     } else if (data['event'] == "message") {
       handleYouTube(data);
+    } else if (data['event'] == "shutdown") {
+      sub.cancel();  
     }
   });
   
