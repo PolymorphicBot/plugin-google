@@ -34,7 +34,7 @@ void main(List<String> args, SendPort port) {
 }
 
 var link_regex = new RegExp(r'\(?\b((http|https)://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]');
-var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&key=${googleAPIKey}&id=';
+var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&key=${googleAPIKey}&id=';
 var _yt_link_id = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
 
 void handleYouTube(event) {
@@ -76,8 +76,10 @@ void printYouTubeInfo(data, info) {
   }
   
   var snippet = info["snippet"];
+  var time = info['contentDetails']['duration'];
+  var timeFormatted = time.substring(2, time.length - 1).replaceAll("M", ":");
   
-  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET})");
+  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET}) (${timeFormatted})");
 }
 
 String fancyPrefix(String name) {
