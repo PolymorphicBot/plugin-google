@@ -82,9 +82,10 @@ void printYouTubeInfo(data, info) {
   var hours = match.group(1) != null ? int.parse(match.group(1).replaceAll('H', '')) : 0;
   var minutes = match.group(2) != null ? int.parse(match.group(2).replaceAll('M', '')) : 0;
   var seconds = match.group(3) != null ? int.parse(match.group(3).replaceAll('S', '')) : 0;
-  reply("${hours}:${minutes}:${seconds}");
+  var duration = new Duration(hours: hours, minutes: minutes, seconds: seconds).toString();
+  duration = duration.substring(0, duration.length - 7);
   
-  //reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET}) (${dateA})");
+  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET}) (${duration})");
 }
 
 String fancyPrefix(String name) {
