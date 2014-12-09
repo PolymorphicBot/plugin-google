@@ -34,8 +34,9 @@ void main(List<String> args, SendPort port) {
 }
 
 var link_regex = new RegExp(r'\(?\b((http|https)://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]');
-var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&key=${googleAPIKey}&id=';
+var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&key=${googleAPIKey}&id=';
 var _yt_link_id = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
+var duration_parser = new RegExp(r'^([0-9]+(?:[,\.][0-9]+)?H)?([0-9]+(?:[,\.][0-9]+)?M)?([0-9]+(?:[,\.][0-9]+)?S)?$');
 
 void handleYouTube(event) {
   if (link_regex.hasMatch(event["message"])) {
@@ -76,8 +77,15 @@ void printYouTubeInfo(data, info) {
   }
   
   var snippet = info["snippet"];
+  var timeInput = info['contentDetails']['duration'].substring(2);
+  var match = duration_parser.firstMatch(timeInput);
+  var hours = match.group(1) != null ? int.parse(match.group(1).replaceAll('H', '')) : 0;
+  var minutes = match.group(2) != null ? int.parse(match.group(2).replaceAll('M', '')) : 0;
+  var seconds = match.group(3) != null ? int.parse(match.group(3).replaceAll('S', '')) : 0;
+  var duration = new Duration(hours: hours, minutes: minutes, seconds: seconds).toString();
+  duration = duration.substring(0, duration.length - 7);
   
-  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET})");
+  reply("${fancyPrefix("YouTube")} ${snippet['title']} | ${snippet['channelTitle']} (${Color.GREEN}${info['statistics']['likeCount']}${Color.RESET}:${Color.RED}${info['statistics']['dislikeCount']}${Color.RESET}) (${duration})");
 }
 
 String fancyPrefix(String name) {
