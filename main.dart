@@ -3,7 +3,7 @@ import "google.dart";
 import 'package:plugins/plugin.dart';
 import 'dart:isolate';
 import 'package:http/http.dart' as http;
-import 'package:irc/irc.dart';
+import 'package:irc/client.dart';
 import 'dart:convert';
 
 Receiver recv;
