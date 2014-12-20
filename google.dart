@@ -12,7 +12,7 @@ Future<Map<String, Object>> google(String query) {
   });
 }
 
-Future<String> google_shorten(String longUrl) {
+Future<String> googleShorten(String longUrl) {
   var input = JSON.encode({
     "longUrl": longUrl
   });

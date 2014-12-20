@@ -1,46 +1,73 @@
 import "google.dart";
 
-import 'package:plugins/plugin.dart';
-import 'dart:isolate';
+import "package:polymorphic_bot/api.dart";
+
 import 'package:http/http.dart' as http;
-import 'package:irc/client.dart';
+import 'package:irc/client.dart' show Color;
 import 'dart:convert';
 
-Receiver recv;
+BotConnector bot;
+EventManager eventManager;
 
-void main(List<String> args, SendPort port) {
-  print("[Google] Loading");
-  recv = new Receiver(port);
-
-  var sub;
+void main(args, port) {
+  bot = new BotConnector(port);
+  eventManager = bot.createEventManager();
   
-  sub = recv.listen((data) {
-    if (data["event"] == "command") {
-      handleCommand(data);
-    } else if (data['event'] == "message") {
-      handleYouTube(data);
-    } else if (data['event'] == "shutdown") {
-      sub.cancel();
-    }
+  var requests = new RequestAdapter();
+  bot.handleRequest(requests.handle);
+  requests.register("shorten", (request) {
+    googleShorten(request.data['url']).then((short) {
+      request.reply({ "shortened": short });
+    });
   });
   
-  recv.listenRequest((request) {
-    if (request.command == "shorten") {
-      google_shorten(request.data['url']).then((short) {
-        request.reply({ "shortened": short });
+  eventManager.command("google", (event) {
+    var args = event.args;
+    if (args.length == 0) {
+      event.reply("> Usage: google <query>");
+    } else {
+      var query = args.join(" ");
+      google(query).then((resp) {
+        var results = resp["responseData"]["results"];
+        if (results.length == 0) {
+          event.reply("> No Results Found!");
+        } else {
+          var result = results[0];
+          event.reply("> ${result["titleNoFormatting"]} | ${result["unescapedUrl"]}");
+        }
       });
     }
   });
+  
+  eventManager.command("shorten", (event) {
+    var args = event.args;
+    if (args.length == 0) {
+      event.reply("> Usage: shorten <url>");
+    } else {
+      var url = args.join(" ");
+      googleShorten(url).then((shortened) {
+        if (shortened == null) {
+          event.reply("> Failed to Shorten URL.");
+        } else {
+          event.reply("> ${shortened}");
+        }
+      });
+    }
+  });
+  
+  eventManager.on("message").listen((data) {
+    handleYouTube(data);
+  });
 }
 
-var link_regex = new RegExp(r'\(?\b((http|https)://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]');
+var LINK_REGEX = new RegExp(r'\(?\b((http|https)://|www[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]');
 var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&key=${googleAPIKey}&id=';
-var _yt_link_id = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
-var duration_parser = new RegExp(r'^([0-9]+(?:[,\.][0-9]+)?H)?([0-9]+(?:[,\.][0-9]+)?M)?([0-9]+(?:[,\.][0-9]+)?S)?$');
+var YT_LINK_ID = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
+var DURATION_PARSER = new RegExp(r'^([0-9]+(?:[,\.][0-9]+)?H)?([0-9]+(?:[,\.][0-9]+)?M)?([0-9]+(?:[,\.][0-9]+)?S)?$');
 
 void handleYouTube(event) {
-  if (link_regex.hasMatch(event["message"])) {
-    link_regex.allMatches(event['message']).forEach((match) {
+  if (LINK_REGEX.hasMatch(event["message"])) {
+    LINK_REGEX.allMatches(event['message']).forEach((match) {
       var url = match.group(0);
       if (url.contains("youtube") || url.contains("youtu.be")) {
         outputYouTubeInfo(event, url);
@@ -50,7 +77,7 @@ void handleYouTube(event) {
 }
 
 void outputYouTubeInfo(event, String url) {
-  var id = extract_yt_id(url);
+  var id = extractYouTubeID(url);
   
   if (id == null) {
     return;
@@ -68,17 +95,12 @@ void outputYouTubeInfo(event, String url) {
 
 void printYouTubeInfo(data, info) {
   void reply(String message) {
-    recv.send({
-      "network": data["network"],
-      "target": data["target"],
-      "command": "message",
-      "message": message
-    });
+    bot.message(data["network"], data["target"], message);
   }
   
   var snippet = info["snippet"];
   var timeInput = info['contentDetails']['duration'].substring(2);
-  var match = duration_parser.firstMatch(timeInput);
+  var match = DURATION_PARSER.firstMatch(timeInput);
   var hours = match.group(1) != null ? int.parse(match.group(1).replaceAll('H', '')) : 0;
   var minutes = match.group(2) != null ? int.parse(match.group(2).replaceAll('M', '')) : 0;
   var seconds = match.group(3) != null ? int.parse(match.group(3).replaceAll('S', '')) : 0;
@@ -92,8 +114,8 @@ String fancyPrefix(String name) {
   return "[${Color.BLUE}${name}${Color.RESET}]";
 }
 
-String extract_yt_id(url) {
-  var first = _yt_link_id.firstMatch(url);
+String extractYouTubeID(url) {
+  var first = YT_LINK_ID.firstMatch(url);
 
   if (first == null) {
     return null;
@@ -101,48 +123,3 @@ String extract_yt_id(url) {
   return first.group(3);
 }
 
-void handleCommand(data) {
-  void reply(String message) {
-    recv.send({
-      "network": data["network"],
-      "target": data["target"],
-      "command": "message",
-      "message": message
-    });
-  }
-
-  switch (data["command"]) {
-    case "google":
-      var args = data["args"];
-      if (args.length == 0) {
-        reply("> Usage: google <query>");
-      } else {
-        var query = args.join(" ");
-        google(query).then((resp) {
-          var results = resp["responseData"]["results"];
-          if (results.length == 0) {
-            reply("> No Results Found!");
-          } else {
-            var result = results[0];
-            reply("> ${result["titleNoFormatting"]} | ${result["unescapedUrl"]}");
-          }
-        });
-      }
-      break;
-    case "shorten":
-      var args = data["args"];
-      if (args.length == 0) {
-        reply("> Usage: shorten <url>");
-      } else {
-        var url = args.join(" ");
-        google_shorten(url).then((shortened) {
-          if (shortened == null) {
-            reply("> Failed to Shorten URL.");
-          } else {
-            reply("> ${shortened}");
-          }
-        });
-      }
-      break;
-  }
-}
