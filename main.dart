@@ -7,11 +7,9 @@ import 'package:irc/client.dart' show Color;
 import 'dart:convert';
 
 BotConnector bot;
-EventManager eventManager;
 
-void main(args, port) {
-  bot = new BotConnector(port);
-  eventManager = bot.createEventManager();
+void main(args, Plugin plugin) {
+  bot = plugin.getBot();
   
   var requests = new RequestAdapter();
   bot.handleRequest(requests.handle);
@@ -21,7 +19,7 @@ void main(args, port) {
     });
   });
   
-  eventManager.command("google", (event) {
+  bot.command("google", (event) {
     var args = event.args;
     if (args.length == 0) {
       event.reply("> Usage: google <query>");
@@ -39,7 +37,7 @@ void main(args, port) {
     }
   });
   
-  eventManager.command("shorten", (event) {
+  bot.command("shorten", (event) {
     var args = event.args;
     if (args.length == 0) {
       event.reply("> Usage: shorten <url>");
@@ -55,7 +53,7 @@ void main(args, port) {
     }
   });
   
-  eventManager.on("message").listen((data) {
+  bot.on("message").listen((data) {
     handleYouTube(data);
   });
 }
