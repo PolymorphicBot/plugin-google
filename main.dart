@@ -11,9 +11,9 @@ BotConnector bot;
 void main(args, Plugin plugin) {
   bot = plugin.getBot();
   
-  plugin.addRemoteMethod("shorten", (request) {
-    googleShorten(request.data['url']).then((short) {
-      request.reply({ "shortened": short });
+  plugin.addRemoteMethod("shorten", (call) {
+    googleShorten(call.getArgument("url")).then((short) {
+      call.reply(short);
     });
   });
   
