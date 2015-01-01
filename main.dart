@@ -11,9 +11,7 @@ BotConnector bot;
 void main(args, Plugin plugin) {
   bot = plugin.getBot();
   
-  var requests = new RequestAdapter();
-  bot.handleRequest(requests.handle);
-  requests.register("shorten", (request) {
+  plugin.addRemoteMethod("shorten", (request) {
     googleShorten(request.data['url']).then((short) {
       request.reply({ "shortened": short });
     });
@@ -53,8 +51,8 @@ void main(args, Plugin plugin) {
     }
   });
   
-  bot.on("message").listen((data) {
-    handleYouTube(data);
+  bot.onMessage((event) {
+    handleYouTube(event);
   });
 }
 
@@ -63,9 +61,9 @@ var YT_INFO_LINK = 'https://www.googleapis.com/youtube/v3/videos?part=snippet,st
 var YT_LINK_ID = new RegExp(r'^.*(youtu.be/|v/|embed/|watch\?|youtube.com/user/[^#]*#([^/]*?/)*)\??v?=?([^#\&\?]*).*');
 var DURATION_PARSER = new RegExp(r'^([0-9]+(?:[,\.][0-9]+)?H)?([0-9]+(?:[,\.][0-9]+)?M)?([0-9]+(?:[,\.][0-9]+)?S)?$');
 
-void handleYouTube(event) {
-  if (LINK_REGEX.hasMatch(event["message"])) {
-    LINK_REGEX.allMatches(event['message']).forEach((match) {
+void handleYouTube(MessageEvent event) {
+  if (LINK_REGEX.hasMatch(event.message)) {
+    LINK_REGEX.allMatches(event.message).forEach((match) {
       var url = match.group(0);
       if (url.contains("youtube") || url.contains("youtu.be")) {
         outputYouTubeInfo(event, url);
@@ -74,7 +72,7 @@ void handleYouTube(event) {
   }
 }
 
-void outputYouTubeInfo(event, String url) {
+void outputYouTubeInfo(MessageEvent event, String url) {
   var id = extractYouTubeID(url);
   
   if (id == null) {
@@ -91,9 +89,9 @@ void outputYouTubeInfo(event, String url) {
   });
 }
 
-void printYouTubeInfo(data, info) {
+void printYouTubeInfo(MessageEvent event, info) {
   void reply(String message) {
-    bot.message(data["network"], data["target"], message);
+    bot.message(event.network, event.target, message);
   }
   
   var snippet = info["snippet"];
@@ -112,7 +110,7 @@ String fancyPrefix(String name) {
   return "[${Color.BLUE}${name}${Color.RESET}]";
 }
 
-String extractYouTubeID(url) {
+String extractYouTubeID(String url) {
   var first = YT_LINK_ID.firstMatch(url);
 
   if (first == null) {
