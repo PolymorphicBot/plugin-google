@@ -91,7 +91,7 @@ void outputYouTubeInfo(MessageEvent event, String url) {
 
 void printYouTubeInfo(MessageEvent event, info) {
   void reply(String message) {
-    bot.message(event.network, event.target, message);
+    bot.sendMessage(event.network, event.target, message);
   }
   
   var snippet = info["snippet"];
