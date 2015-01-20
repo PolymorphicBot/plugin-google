@@ -8,7 +8,9 @@ import 'dart:convert';
 
 BotConnector bot;
 
-void main(args, Plugin plugin) {
+void main(args, port) {
+  var plugin = polymorphic(args, port);
+  
   bot = plugin.getBot();
   
   plugin.addRemoteMethod("shorten", (call) {
